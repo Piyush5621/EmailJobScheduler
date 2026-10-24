@@ -1,0 +1,28 @@
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: emailscheduler-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: emailscheduler-postgres
+    environment:
+      POSTGRES_DB: emailscheduler
+      POSTGRES_USER: emailscheduler_user
+      POSTGRES_PASSWORD: local_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
