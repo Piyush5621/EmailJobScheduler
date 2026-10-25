@@ -1,4 +1,3 @@
-
 import type { PoolClient } from "pg";
 import type { EmailRecord } from "../models/email.model.js";
 import { databasePool } from "../config/database.js";
@@ -54,7 +53,6 @@ export async function createEmailsForCampaign(
 export async function getEmailsByCampaignId(
     campaignId: number
 ): Promise<EmailRecord[]> {
-
     const result = await databasePool.query<EmailRecord>(
         `SELECT
        id,
@@ -75,12 +73,12 @@ export async function getEmailsByCampaignId(
     return result.rows;
 }
 
-
-
 export interface EmailDetails {
     id: number;
     campaign_id: number;
     recipient_id: number;
+    user_id: number;
+    hourly_limit: number | null;
     status: EmailRecord["status"];
     subject: string;
     body: string;
@@ -97,6 +95,8 @@ export async function getEmailDetailsById(
        e.campaign_id,
        e.recipient_id,
        e.status,
+       c.user_id,
+       c.hourly_limit,
        c.subject,
        c.body,
        r.email AS recipient_email,
@@ -110,7 +110,6 @@ export async function getEmailDetailsById(
 
     return result.rows[0] ?? null;
 }
-
 
 export async function claimEmailForSending(
     emailId: number
@@ -128,7 +127,6 @@ export async function claimEmailForSending(
     return result.rowCount === 1;
 }
 
-
 export async function updateEmailStatus(
     emailId: number,
     status: EmailRecord["status"],
@@ -145,7 +143,6 @@ export async function updateEmailStatus(
     );
 }
 
-
 export async function isEmailAlreadySent(
     emailId: number
 ): Promise<boolean> {
@@ -159,8 +156,6 @@ export async function isEmailAlreadySent(
     return result.rows[0]?.status === "sent";
 }
 
-
-
 export async function resetEmailForRetry(
     emailId: number,
     errorMessage: string
@@ -173,5 +168,19 @@ export async function resetEmailForRetry(
      WHERE id = $1
        AND status IN ('failed', 'sending')`,
         [emailId, errorMessage]
+    );
+}
+
+export async function rescheduleEmail(
+    emailId: number,
+    newScheduledAt: Date
+): Promise<void> {
+    await databasePool.query(
+        `UPDATE emails
+     SET scheduled_at = $2,
+         status = 'scheduled',
+         updated_at = NOW()
+     WHERE id = $1`,
+        [emailId, newScheduledAt]
     );
 }

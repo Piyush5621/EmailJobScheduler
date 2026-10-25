@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { Worker } from "bullmq";
+import { Worker, DelayedError } from "bullmq";
 import { emailTransporter } from "../config/email.js";
 import { redisClient } from "../config/redis.js";
 import {
@@ -7,7 +7,9 @@ import {
     claimEmailForSending,
     updateEmailStatus,
     resetEmailForRetry,
+    rescheduleEmail,
 } from "../repositories/email.repository.js";
+import { checkAndIncrementHourlyLimit } from "../services/rate-limiter.service.js";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 const parsedRedisUrl = new URL(redisUrl);
@@ -70,6 +72,23 @@ export const emailWorker = new Worker(
                 `Email ${emailId} has status "${email.status}". Skipping to avoid a duplicate send.`
             );
             return;
+        }
+
+        // Check shared Redis hourly rate limit before claiming
+        const rateLimit = await checkAndIncrementHourlyLimit(
+            email.user_id,
+            email.campaign_id,
+            email.hourly_limit
+        );
+
+        if (!rateLimit.allowed) {
+            console.warn(
+                `Hourly rate limit reached (${rateLimit.currentCount}/${rateLimit.limit}) for sender ${email.user_id}. Rescheduling email ${emailId} for next window in ${Math.round(rateLimit.retryAfterMs / 1000)}s...`
+            );
+
+            await rescheduleEmail(emailId, rateLimit.nextWindowStart);
+            await job.moveToDelayed(rateLimit.nextWindowStart.getTime(), job.token);
+            throw new DelayedError();
         }
 
         const claimed = await claimEmailForSending(emailId);
