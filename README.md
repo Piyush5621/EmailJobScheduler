@@ -63,6 +63,13 @@ Built for the ReachInbox hiring assignment to handle high-throughput, persistent
 
 ## Tech Stack
 
+### Frontend
+- **Framework & Language:** React 19 + TypeScript (Vite 8)
+- **Styling:** Tailwind CSS v4 (matching the Figma UI specification)
+- **Icons:** Lucide React
+- **API Client:** Typed native fetch layer with credentials handling (`connect.sid` cookie proxying)
+
+### Backend
 - **Runtime & Language:** Node.js (v20+) with TypeScript (ES Modules)
 - **Web Framework:** Express.js 5 with Session & Passport Google OAuth
 - **Database:** PostgreSQL 17 (Relational source of truth, ACID transactions)
@@ -105,7 +112,7 @@ This starts:
 - **Redis 7** on port `6379`
 - **Elasticsearch 8.15.0** on port `9200`
 
-### 4. Run Typecheck & Start the Server
+### 4. Run Typecheck & Start the Backend Server
 ```powershell
 cd backend
 npm run typecheck
@@ -123,6 +130,15 @@ Elasticsearch index 'emails' created successfully.
 Server is running on port 3000
 BullMQ dashboard available at http://localhost:3000/admin/queues
 ```
+
+### 5. Start the Frontend Client
+In a new terminal:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+The application will be accessible at `http://localhost:5173` with Vite automatically proxying `/api`, `/auth`, `/integrations`, and `/admin` requests to the backend server.
 
 ---
 
