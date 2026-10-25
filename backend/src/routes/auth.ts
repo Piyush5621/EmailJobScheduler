@@ -15,14 +15,11 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/login",
+    failureRedirect: "http://localhost:5173/?error=auth_failed",
     session: true,
   }),
   (_req, res) => {
-    res.status(200).json({
-      status: "success",
-      message: "Google login successful",
-    });
+    res.redirect("http://localhost:5173/");
   }
 );
 
@@ -46,7 +43,6 @@ router.post("/logout", (req, res, next) => {
   });
 });
 
-
 router.get("/me", requireAuth, (req, res) => {
   const user = req.user as AppUser;
 
@@ -62,6 +58,5 @@ router.get("/me", requireAuth, (req, res) => {
     },
   });
 });
-
 
 export default router;

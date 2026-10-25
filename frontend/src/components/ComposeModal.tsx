@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  ArrowLeft,
   Trash2,
   Paperclip,
   Calendar,
@@ -53,6 +52,17 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   // Add a recipient manually from text input
   const handleAddRecipient = (emailToAdd: string) => {
     const trimmed = emailToAdd.trim().toLowerCase();
@@ -85,7 +95,6 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
       const content = event.target?.result as string;
       if (!content) return;
 
-      // Extract all email addresses from CSV/Text content using regex
       const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
       const matches = content.match(emailRegex) || [];
 
@@ -121,7 +130,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
   // Submit the Campaign to Backend
   const handleScheduleSubmit = async () => {
     if (recipients.length === 0) {
-      setError('Please add at least one recipient email address or upload a CSV.');
+      setError('Please add at least one recipient email address or upload a CSV of leads.');
       return;
     }
     if (!subject.trim()) {
@@ -170,20 +179,23 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-white min-h-[calc(100vh-4rem)] p-8 overflow-y-auto flex flex-col justify-between">
-      <div>
-        {/* Header Bar matching Figma */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-          <button
-            onClick={onClose}
-            type="button"
-            className="flex items-center gap-2 text-sm font-semibold text-slate-800 hover:text-emerald-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Compose New Email</span>
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+      {/* Backdrop */}
+      <div className="fixed inset-0" onClick={onClose} />
 
-          <div className="flex items-center gap-3">
+      {/* Floating Modal Card */}
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-3xl max-h-[92vh] flex flex-col z-10 overflow-hidden animate-in zoom-in-95 duration-150">
+        {/* Header Bar matching Figma with Prominent Cut / Close (X) Button */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/90 bg-white sticky top-0 z-20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">
+              ONB
+            </div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Compose New Email</h2>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Clear Form */}
             <button
               onClick={() => {
                 setSubject('');
@@ -193,7 +205,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               }}
               title="Clear compose form"
               type="button"
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -203,7 +215,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               <button
                 onClick={() => setShowSchedulePopup((prev) => !prev)}
                 type="button"
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Send Later</span>
@@ -211,12 +223,12 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
 
               {/* Schedule Later Popup Dialog matching Figma Frame 5 */}
               {showSchedulePopup && (
-                <div className="absolute right-0 top-11 w-72 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-4 z-40">
+                <div className="absolute right-0 top-10 w-72 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-4 z-40 animate-in fade-in zoom-in-95 duration-100">
                   <div className="text-xs font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
-                    <span>Send later</span>
+                    <span>Schedule send</span>
                     <button
                       onClick={() => setShowSchedulePopup(false)}
-                      className="text-slate-400 hover:text-slate-600"
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -226,24 +238,33 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                   <div className="space-y-1 mb-4">
                     <button
                       type="button"
-                      onClick={() => applyPreset(24, '08:00')}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between"
+                      onClick={() => {
+                        applyPreset(24, '08:00');
+                        setShowSchedulePopup(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between cursor-pointer"
                     >
                       <span>Tomorrow morning</span>
                       <span className="text-slate-400">8:00 AM</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => applyPreset(24, '13:00')}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between"
+                      onClick={() => {
+                        applyPreset(24, '13:00');
+                        setShowSchedulePopup(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between cursor-pointer"
                     >
                       <span>Tomorrow afternoon</span>
                       <span className="text-slate-400">1:00 PM</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => applyPreset(24, '18:00')}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between"
+                      onClick={() => {
+                        applyPreset(24, '18:00');
+                        setShowSchedulePopup(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 flex justify-between cursor-pointer"
                     >
                       <span>Tomorrow evening</span>
                       <span className="text-slate-400">6:00 PM</span>
@@ -267,29 +288,39 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowSchedulePopup(false)}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                     >
-                      Done
+                      Confirm
                     </button>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Cut Button (Close Modal) */}
+            <button
+              onClick={onClose}
+              type="button"
+              title="Close modal (Esc)"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer ml-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Error Banner */}
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+        {/* Scrollable Form Body with Overflow */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Error Banner */}
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
-        {/* Form Fields matching Figma */}
-        <div className="space-y-4">
           {/* From Field */}
           <div className="flex items-center gap-4 pb-3 border-b border-slate-100 text-xs">
             <span className="w-16 font-semibold text-slate-400">From</span>
@@ -310,7 +341,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRemoveRecipient(rec)}
-                    className="hover:text-emerald-950 text-emerald-600"
+                    className="hover:text-emerald-950 text-emerald-600 cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -340,16 +371,16 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               type="button"
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/70 rounded-lg border border-emerald-200 transition-colors"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
             >
               <Paperclip className="w-3.5 h-3.5" />
-              <span>Upload CSV</span>
+              <span>Upload Leads CSV</span>
             </button>
           </div>
 
           {/* Recipient Counter pill */}
           {recipients.length > 0 && (
-            <div className="text-[11px] text-emerald-700 font-medium pl-20">
+            <div className="text-[11px] text-emerald-700 font-semibold pl-20">
               ✓ {recipients.length} unique recipient{recipients.length > 1 ? 's' : ''} detected
             </div>
           )}
@@ -397,68 +428,68 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
             {/* Scheduled Start Time Preview */}
             <div className="flex items-center gap-1.5 ml-auto text-emerald-800 font-semibold">
               <Clock className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Starts: {new Date(scheduledDateTime).toLocaleString()}</span>
+              <span>Starts: {new Date(scheduledDateTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
 
-          {/* Rich Compose Body Area matching Figma */}
+          {/* Compose Body Area */}
           <div className="pt-2">
             <textarea
-              rows={12}
+              rows={8}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Type your message here..."
-              className="w-full p-4 rounded-xl border border-slate-200/80 focus:border-emerald-500 focus:outline-none text-xs text-slate-800 placeholder-slate-400 leading-relaxed font-normal resize-none"
+              className="w-full p-4 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-xs text-slate-800 placeholder-slate-400 leading-relaxed font-normal resize-none"
             />
 
-            {/* Formatting Toolbar Icons matching Figma */}
-            <div className="flex items-center gap-1 py-2 px-3 border border-slate-200/80 rounded-xl bg-slate-50/70 mt-2 text-slate-500">
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Bold className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Italic className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Underline className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Strikethrough className="w-3.5 h-3.5" /></button>
+            {/* Formatting Toolbar Icons */}
+            <div className="flex items-center gap-1 py-1.5 px-3 border border-slate-200 rounded-xl bg-slate-50/70 mt-2 text-slate-500">
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Bold className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Italic className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Underline className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Strikethrough className="w-3.5 h-3.5" /></button>
               <div className="w-px h-4 bg-slate-300 mx-1" />
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><List className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Link2 className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Image className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Code className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><List className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Link2 className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Image className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Code className="w-3.5 h-3.5" /></button>
               <div className="w-px h-4 bg-slate-300 mx-1" />
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Undo2 className="w-3.5 h-3.5" /></button>
-              <button type="button" className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600"><Redo2 className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Undo2 className="w-3.5 h-3.5" /></button>
+              <button type="button" className="p-1 hover:bg-slate-200/60 rounded text-slate-600"><Redo2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Schedule Action Button */}
-      <div className="pt-6 border-t border-slate-100 flex items-center justify-between mt-8">
-        <button
-          onClick={onClose}
-          type="button"
-          disabled={isSubmitting}
-          className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-        >
-          Cancel
-        </button>
+        {/* Modal Action Footer */}
+        <div className="px-6 py-4 border-t border-slate-200/90 bg-slate-50/50 flex items-center justify-between sticky bottom-0">
+          <button
+            onClick={onClose}
+            type="button"
+            disabled={isSubmitting}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
 
-        <button
-          onClick={handleScheduleSubmit}
-          disabled={isSubmitting}
-          type="button"
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Scheduling Campaign...</span>
-            </>
-          ) : (
-            <>
-              <Send className="w-3.5 h-3.5" />
-              <span>Schedule Campaign</span>
-            </>
-          )}
-        </button>
+          <button
+            onClick={handleScheduleSubmit}
+            disabled={isSubmitting}
+            type="button"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Scheduling Campaign...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" />
+                <span>Schedule Campaign</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

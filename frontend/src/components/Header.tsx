@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ExternalLink, LogOut } from 'lucide-react';
+import { Search, ExternalLink, LogOut, Bell } from 'lucide-react';
 import type { User } from '../types';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   onSearchChange: (query: string) => void;
   onLogout: () => void;
   slackConnected: boolean;
+  onOpenSlack: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   onLogout,
   slackConnected,
+  onOpenSlack,
 }) => {
   return (
     <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 sticky top-0 z-30">
@@ -55,21 +57,23 @@ export const Header: React.FC<HeaderProps> = ({
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
 
-        {/* Slack Status Indicator */}
-        <a
-          href="/api/slack/authorize"
-          title={slackConnected ? 'Slack alerts connected' : 'Click to connect Slack workspace'}
-          className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+        {/* Slack Status / Configure Button */}
+        <button
+          onClick={onOpenSlack}
+          type="button"
+          title={slackConnected ? 'Slack rate-limit alerts active (Click to manage)' : 'Connect Slack workspace or Webhook'}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-xs cursor-pointer ${
             slackConnected
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-emerald-300'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+              : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
           }`}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${slackConnected ? 'bg-emerald-500' : 'bg-slate-400'}`}
+            className={`w-2 h-2 rounded-full ${slackConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}
           />
-          {slackConnected ? 'Slack Alert Active' : 'Connect Slack'}
-        </a>
+          <Bell className="w-3.5 h-3.5" />
+          <span>{slackConnected ? 'Slack Active' : 'Connect Slack'}</span>
+        </button>
 
         {/* User Profile Pill & Logout */}
         <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
@@ -93,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onLogout}
             title="Log out"
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>

@@ -92,7 +92,7 @@ export const api = {
     return res.data.campaign;
   },
 
-  // Slack Status
+  // Slack Status & Configuration
   async getSlackStatus(): Promise<{ connected: boolean; teamName: string | null; channelName: string | null }> {
     try {
       const res = await request<{ status: string; data: { connected: boolean; teamName: string | null; channelName: string | null } }>(
@@ -102,5 +102,27 @@ export const api = {
     } catch {
       return { connected: false, teamName: null, channelName: null };
     }
+  },
+
+  async connectSlackWebhook(webhookUrl: string, channelName?: string): Promise<{ connected: boolean; teamName: string; channelName: string }> {
+    const res = await request<{ status: string; data: { connected: boolean; teamName: string; channelName: string } }>(
+      '/api/slack/webhook',
+      {
+        method: 'POST',
+        body: JSON.stringify({ webhookUrl, channelName }),
+      }
+    );
+    return res.data;
+  },
+
+  async testSlackAlert(): Promise<string> {
+    const res = await request<{ status: string; message: string }>('/api/slack/test', {
+      method: 'POST',
+    });
+    return res.message;
+  },
+
+  async disconnectSlack(): Promise<void> {
+    await request('/api/slack/disconnect', { method: 'DELETE' });
   },
 };

@@ -7,7 +7,8 @@ import { Sidebar } from './components/Sidebar';
 import { EmailList } from './components/EmailList';
 import { EmailDetailModal } from './components/EmailDetailModal';
 import { ComposeModal } from './components/ComposeModal';
-import { Loader2 } from 'lucide-react';
+import { SlackModal } from './components/SlackModal';
+import { Loader2, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -18,14 +19,31 @@ export const App: React.FC = () => {
   const [isLoadingEmails, setIsLoadingEmails] = useState<boolean>(false);
   const [selectedEmail, setSelectedEmail] = useState<EmailItem | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState<boolean>(false);
+  const [isSlackModalOpen, setIsSlackModalOpen] = useState<boolean>(false);
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [sentCount, setSentCount] = useState<number>(0);
   const [slackConnected, setSlackConnected] = useState<boolean>(false);
+  const [slackDetails, setSlackDetails] = useState<{ teamName: string | null; channelName: string | null }>({
+    teamName: null,
+    channelName: null,
+  });
+  const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Debounce ref for search queries
   const searchTimeoutRef = useRef<number | null>(null);
 
-  // 1. Initial auth check
+  // Refresh Slack Status helper
+  const refreshSlackStatus = useCallback(async () => {
+    try {
+      const status = await api.getSlackStatus();
+      setSlackConnected(status.connected);
+      setSlackDetails({ teamName: status.teamName, channelName: status.channelName });
+    } catch {
+      setSlackConnected(false);
+    }
+  }, []);
+
+  // 1. Initial auth check & URL parameters inspection (for Slack redirect callback)
   useEffect(() => {
     let isMounted = true;
     async function initUser() {
@@ -35,10 +53,7 @@ export const App: React.FC = () => {
           setUser(currentUser);
         }
         if (currentUser) {
-          const slackStatus = await api.getSlackStatus();
-          if (isMounted) {
-            setSlackConnected(slackStatus.connected);
-          }
+          await refreshSlackStatus();
         }
       } catch (err) {
         console.error('Failed to authenticate session:', err);
@@ -47,12 +62,30 @@ export const App: React.FC = () => {
           setIsInitializing(false);
         }
       }
+
+      // Check for Slack or Auth redirect query params
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('slack') === 'connected') {
+        setNotification({
+          text: 'Slack workspace connected successfully! Rate-limit alerts are now active.',
+          type: 'success',
+        });
+        refreshSlackStatus();
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (params.get('slack_error')) {
+        setNotification({
+          text: `Slack connection error: ${decodeURIComponent(params.get('slack_error') || '')}`,
+          type: 'error',
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
+
     initUser();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshSlackStatus]);
 
   // 2. Fetch counts for sidebar badges
   const refreshCounts = useCallback(async () => {
@@ -148,6 +181,10 @@ export const App: React.FC = () => {
     setSelectedEmail(null);
     loadEmails('');
     refreshCounts();
+    setNotification({
+      text: 'Campaign scheduled successfully! Emails are queued in BullMQ.',
+      type: 'success',
+    });
   };
 
   // 5. Loading screen during session bootstrap
@@ -180,7 +217,36 @@ export const App: React.FC = () => {
         onSearchChange={handleSearchChange}
         onLogout={handleLogout}
         slackConnected={slackConnected}
+        onOpenSlack={() => setIsSlackModalOpen(true)}
       />
+
+      {/* Global Toast Notification */}
+      {notification && (
+        <div className="px-6 pt-3">
+          <div
+            className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs border ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {notification.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+              )}
+              <span>{notification.text}</span>
+            </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="p-1 opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Body */}
       <div className="flex flex-1 overflow-hidden">
@@ -219,7 +285,7 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Compose Email Modal */}
+      {/* Compose Email Modal (Floating Overlay Dialog with Cut Button) */}
       {isComposeOpen && (
         <ComposeModal
           user={user}
@@ -227,6 +293,17 @@ export const App: React.FC = () => {
           onCampaignCreated={handleCampaignCreated}
         />
       )}
+
+      {/* Slack Integration Modal */}
+      <SlackModal
+        isOpen={isSlackModalOpen}
+        onClose={() => setIsSlackModalOpen(false)}
+        slackConnected={slackConnected}
+        slackDetails={slackDetails}
+        onStatusChange={() => {
+          refreshSlackStatus();
+        }}
+      />
     </div>
   );
 };
