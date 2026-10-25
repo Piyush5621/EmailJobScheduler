@@ -11,6 +11,7 @@ import {
 } from "../repositories/email.repository.js";
 
 import { scheduleCampaignEmails } from "./email-scheduler.service.js";
+import { indexEmail } from "./elasticsearch.service.js";
 
 
 export async function saveCampaign(

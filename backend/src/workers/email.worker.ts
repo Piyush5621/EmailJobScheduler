@@ -11,6 +11,7 @@ import {
 } from "../repositories/email.repository.js";
 import { checkAndIncrementHourlyLimit } from "../services/rate-limiter.service.js";
 import { sendRateLimitNotification } from "../services/slack.service.js";
+import { updateEmailIndexStatus } from "../services/elasticsearch.service.js";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 const parsedRedisUrl = new URL(redisUrl);
@@ -127,6 +128,10 @@ export const emailWorker = new Worker(
             await updateEmailStatus(emailId, "sent");
             console.log(`Email ${emailId} status updated to sent.`);
 
+            updateEmailIndexStatus(emailId, "sent", new Date()).catch((err) => {
+                console.warn(`[Elasticsearch] Status update warning for email ${emailId}:`, err);
+            });
+
             console.log(`Email ${emailId} sent through Ethereal.`);
             console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
         } catch (error) {
@@ -148,6 +153,9 @@ export const emailWorker = new Worker(
             const isLastAttempt = job.attemptsMade >= (job.opts.attempts || 1) - 1;
             if (isLastAttempt) {
                 await updateEmailStatus(emailId, "failed", message);
+                updateEmailIndexStatus(emailId, "failed", null, message).catch((err) => {
+                    console.warn(`[Elasticsearch] Status update warning for email ${emailId}:`, err);
+                });
             } else {
                 await resetEmailForRetry(emailId, message);
             }
