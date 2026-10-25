@@ -11,6 +11,9 @@ import { bullBoardAdapter } from "./config/bull-board.js";
 
 const app = express();
 
+// Trust reverse proxy headers (Caddy / Nginx) so HTTPS and session cookies work properly
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(sessionMiddleware);
 app.use(passport.initialize());
