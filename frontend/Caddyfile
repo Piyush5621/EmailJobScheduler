@@ -1,0 +1,39 @@
+:80 {
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+    handle /auth/* {
+        reverse_proxy backend:3000
+    }
+    handle /integrations/* {
+        reverse_proxy backend:3000
+    }
+    handle /admin/* {
+        reverse_proxy backend:3000
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
+
+13.239.8.150.sslip.io {
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+    handle /auth/* {
+        reverse_proxy backend:3000
+    }
+    handle /integrations/* {
+        reverse_proxy backend:3000
+    }
+    handle /admin/* {
+        reverse_proxy backend:3000
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
