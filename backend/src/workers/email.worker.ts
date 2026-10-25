@@ -10,6 +10,7 @@ import {
     rescheduleEmail,
 } from "../repositories/email.repository.js";
 import { checkAndIncrementHourlyLimit } from "../services/rate-limiter.service.js";
+import { sendRateLimitNotification } from "../services/slack.service.js";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 const parsedRedisUrl = new URL(redisUrl);
@@ -85,6 +86,16 @@ export const emailWorker = new Worker(
             console.warn(
                 `Hourly rate limit reached (${rateLimit.currentCount}/${rateLimit.limit}) for sender ${email.user_id}. Rescheduling email ${emailId} for next window in ${Math.round(rateLimit.retryAfterMs / 1000)}s...`
             );
+
+            sendRateLimitNotification(email.user_id, {
+                campaignId: email.campaign_id,
+                subject: email.subject,
+                limit: rateLimit.limit,
+                currentCount: rateLimit.currentCount,
+                nextWindowStart: rateLimit.nextWindowStart,
+            }).catch((err) => {
+                console.error("Slack rate-limit notification error:", err);
+            });
 
             await rescheduleEmail(emailId, rateLimit.nextWindowStart);
             await job.moveToDelayed(rateLimit.nextWindowStart.getTime(), job.token);

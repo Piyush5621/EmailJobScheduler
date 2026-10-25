@@ -4,8 +4,8 @@ import { sessionMiddleware } from "./config/session.js";
 import passport from "./config/google-auth.js";
 import recipientsRouter from "./routes/recipients.js";
 import campaignsRouter from "./routes/campaigns.js";
-
 import authRouter from "./routes/auth.js";
+import { slackRouter } from "./routes/slack.js";
 
 const app = express();
 
@@ -31,7 +31,8 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/api/recipients", recipientsRouter);
 app.use("/api/campaigns", campaignsRouter);
-
+app.use("/api/slack", slackRouter);
+app.use("/integrations/slack", slackRouter);
 
 app.use(errorHandler);
 
