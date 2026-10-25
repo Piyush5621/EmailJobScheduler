@@ -1,4 +1,3 @@
-
 # Dependencies
 node_modules/
 
@@ -27,3 +26,13 @@ Thumbs.db
 
 # Personal project notes
 notes.txt
+
+# Temporary testing and scratch scripts
+scratch/
+temp/
+tmp/
+test-*.js
+test-*.cjs
+test-*.mjs
+test-*.ts
+*.scratch.*
