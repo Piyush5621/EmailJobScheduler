@@ -1,4 +1,3 @@
-
 import { databasePool } from "../config/database.js";
 import type { Campaign } from "../models/campaign.model.js";
 import {
@@ -12,7 +11,6 @@ import {
 
 import { scheduleCampaignEmails } from "./email-scheduler.service.js";
 import { indexEmail } from "./elasticsearch.service.js";
-
 
 export async function saveCampaign(
     userId: number,
@@ -97,6 +95,13 @@ export async function saveCampaign(
 
         const emails = await getEmailsByCampaignId(campaign.id);
         await scheduleCampaignEmails(emails);
+
+        // Immediately index all campaign emails in Elasticsearch
+        for (const email of emails) {
+            indexEmail(email.id).catch((err) => {
+                console.warn(`[Elasticsearch] Indexing warning for email ${email.id}:`, err);
+            });
+        }
 
         return campaign;
     } catch (error) {

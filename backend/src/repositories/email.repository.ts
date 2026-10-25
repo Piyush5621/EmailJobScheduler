@@ -80,6 +80,9 @@ export interface EmailDetails {
     user_id: number;
     hourly_limit: number | null;
     status: EmailRecord["status"];
+    scheduled_at: Date;
+    sent_at: Date | null;
+    error_message: string | null;
     subject: string;
     body: string;
     recipient_email: string;
@@ -95,6 +98,9 @@ export async function getEmailDetailsById(
        e.campaign_id,
        e.recipient_id,
        e.status,
+       e.scheduled_at,
+       e.sent_at,
+       e.error_message,
        c.user_id,
        c.hourly_limit,
        c.subject,

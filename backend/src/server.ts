@@ -20,6 +20,9 @@ async function startServer(): Promise<void> {
     await emailWorker.waitUntilReady();
     await verifyEmailConnection();
     await initElasticsearch();
+    const { reindexAllEmails } = await import("./services/elasticsearch.service.js");
+    const reindexedCount = await reindexAllEmails();
+    console.log(`Synchronized ${reindexedCount} email(s) into Elasticsearch index.`);
 
     const { default: app } = await import("./app.js");
 
