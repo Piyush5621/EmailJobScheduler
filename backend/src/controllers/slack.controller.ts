@@ -9,17 +9,24 @@ import {
 } from "../services/slack.service.js";
 import { upsertSlackIntegration } from "../repositories/slack.repository.js";
 
+const getClientUrl = () => process.env.CLIENT_URL || "/";
+
 export const connectSlackController: RequestHandler = (req, res, next) => {
     try {
         const user = req.user as AppUser;
         const redirectUrl = getSlackAuthorizationUrl(user.id);
         res.redirect(redirectUrl);
     } catch (error: any) {
-        res.redirect(`http://localhost:5173/?slack_error=${encodeURIComponent(error?.message || "Failed to initiate Slack authorization.")}`);
+        const clientUrl = getClientUrl();
+        const sep = clientUrl.includes("?") ? "&" : "?";
+        res.redirect(`${clientUrl}${sep}slack_error=${encodeURIComponent(error?.message || "Failed to initiate Slack authorization.")}`);
     }
 };
 
 export const slackCallbackController: RequestHandler = async (req, res) => {
+    const clientUrl = getClientUrl();
+    const sep = clientUrl.includes("?") ? "&" : "?";
+
     try {
         const { code, state, error } = req.query as {
             code?: string;
@@ -28,21 +35,21 @@ export const slackCallbackController: RequestHandler = async (req, res) => {
         };
 
         if (error) {
-            res.redirect(`http://localhost:5173/?slack_error=${encodeURIComponent(error)}`);
+            res.redirect(`${clientUrl}${sep}slack_error=${encodeURIComponent(error)}`);
             return;
         }
 
         if (!code || !state) {
-            res.redirect("http://localhost:5173/?slack_error=missing_code_or_state");
+            res.redirect(`${clientUrl}${sep}slack_error=missing_code_or_state`);
             return;
         }
 
         await handleSlackOAuthCallback(code, state);
 
-        res.redirect("http://localhost:5173/?slack=connected");
+        res.redirect(`${clientUrl}${sep}slack=connected`);
     } catch (error: any) {
         console.error("Slack OAuth callback failed:", error);
-        res.redirect(`http://localhost:5173/?slack_error=${encodeURIComponent(error?.message || "Slack OAuth connection failed.")}`);
+        res.redirect(`${clientUrl}${sep}slack_error=${encodeURIComponent(error?.message || "Slack OAuth connection failed.")}`);
     }
 };
 

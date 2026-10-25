@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import type { AppUser } from "../models/user.model.js";
 
 const router = Router();
+const clientUrl = process.env.CLIENT_URL || "/";
 
 router.get(
   "/google",
@@ -15,11 +16,11 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:5173/?error=auth_failed",
+    failureRedirect: `${clientUrl}?error=auth_failed`,
     session: true,
   }),
   (_req, res) => {
-    res.redirect("http://localhost:5173/");
+    res.redirect(clientUrl);
   }
 );
 
