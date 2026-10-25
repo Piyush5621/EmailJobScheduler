@@ -7,6 +7,7 @@ import campaignsRouter from "./routes/campaigns.js";
 import authRouter from "./routes/auth.js";
 import { slackRouter } from "./routes/slack.js";
 import { emailSearchRouter } from "./routes/email-search.js";
+import { bullBoardAdapter } from "./config/bull-board.js";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api/campaigns", campaignsRouter);
 app.use("/api/slack", slackRouter);
 app.use("/integrations/slack", slackRouter);
 app.use("/api/emails", emailSearchRouter);
+app.use("/admin/queues", bullBoardAdapter.getRouter());
 
 app.use(errorHandler);
 

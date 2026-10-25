@@ -12,6 +12,8 @@
   },
   "type": "module",
   "dependencies": {
+    "@bull-board/api": "^9.10.5",
+    "@bull-board/express": "^9.10.5",
     "@elastic/elasticsearch": "^8.19.2",
     "bullmq": "^6.4.2",
     "connect-redis": "^10.0.0",
