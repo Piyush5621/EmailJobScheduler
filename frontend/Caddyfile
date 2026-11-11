@@ -18,7 +18,7 @@
     }
 }
 
-13.239.8.150.sslip.io {
+16.176.96.179.sslip.io, 13.239.8.150.sslip.io {
     handle /api/* {
         reverse_proxy backend:3000
     }
